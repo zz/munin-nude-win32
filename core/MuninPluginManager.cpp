@@ -105,7 +105,7 @@ MuninPluginManager::MuninPluginManager()
       if (plugin->IsLoaded()) {
         AddPlugin(plugin);
       } else {
-        _Module.LogEvent("Failed to load PerfCounter plugin: [%s]", keyName.c_str());
+        _Module.LogError("Failed to load PerfCounter plugin: [%s]", keyName.c_str());
         delete plugin;
       }
     }

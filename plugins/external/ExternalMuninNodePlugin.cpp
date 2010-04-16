@@ -18,14 +18,34 @@
 
 #include "StdAfx.h"
 #include "ExternalMuninNodePlugin.h"
+#include "../../core/Service.h"
+
+void removeAllNL (std::string &str)
+{
+    std::string temp;
+    for (unsigned int i = 0; i < str.length(); i++)
+        if ((str[i] != '\r') && (str[i] != '\n')) temp += str[i];
+    str = temp;
+}
+
+void removeAllLF (std::string &str)
+{
+    std::string temp;
+    for (unsigned int i = 0; i < str.length(); i++)
+        if ((str[i] != '\r')) temp += str[i];
+    str = temp;
+}
 
 ExternalMuninNodePlugin::ExternalMuninNodePlugin(const std::string &externalPlugin) 
   : m_ExternalPlugin(externalPlugin)
 {
   m_Name = Run("name");
+  removeAllNL(m_Name);
   // Check that the name is valid
-  if (m_Name.find(" ") != m_Name.npos)
-    m_Name = "";
+    if (m_Name.find(" ") != m_Name.npos) {
+	  _Module.LogError("Failed to load External plugin: %s", m_Name.c_str());
+	  m_Name = "";
+  }
 }
 
 ExternalMuninNodePlugin::~ExternalMuninNodePlugin()
@@ -47,6 +67,7 @@ int ExternalMuninNodePlugin::GetValues(char *buffer, int len)
 {
   std::string output = Run("");
   if (output.length() > 0) {
+    removeAllLF(output);
     strncpy(buffer, output.c_str(), len);
     return 0;
   } 
@@ -65,7 +86,7 @@ std::string ExternalMuninNodePlugin::Run(const char *command)
   if (resultCode == CPEXEC_OK) {
     // Wait for the command to complete
     while (pipe.IsChildRunning())
-      Sleep(0);
+      Sleep(100);
     return T2AConvert(pipe.GetOutput());
   }
   // Command failed, empty string

@@ -26,6 +26,7 @@ public:
     BOOL Install();
     BOOL Uninstall(DWORD dwTimeout = 10000);
 	void LogEvent(LPCSTR pszFormat, ...);
+	void LogError(LPCSTR pszFormat, ...);
     void SetServiceStatus(DWORD dwState);
 
     LPCTSTR GetServiceName() { return m_szServiceName; };
