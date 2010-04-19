@@ -3,6 +3,7 @@
 #include "MuninPluginManager.h"
 #include "MuninNodeClient.h"
 #include "JCSocket.h"
+typedef unsigned long uint32;
 
 class MuninNodeServer : public JCThread {
 public:

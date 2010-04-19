@@ -21,6 +21,39 @@
 #include "MuninNodeSettings.h"   // add portnumber to settings
 #include "Service.h"
 
+// Check CIDR mactch
+bool CidrMatch(long logIpAddr, string cidrListString) {
+	bool allow = false;
+	char *list = _strdup(cidrListString.c_str()) ; //"127.0.0.0/18 192.168.0.0/24";
+	char *p = strtok(list, " ");
+	while(p) {
+		if (p == NULL) continue;
+		char *chr_cidr = strchr(p, '/');
+		if (chr_cidr != NULL) {
+				int cidr = atoi(chr_cidr + 1);
+
+				/* Invalid CIDR, treat as single host */
+				if (cidr <= 0 || cidr > 32) cidr = 32;
+
+				/* Remove and then replace the / so that inet_addr() works on the IP portion */
+				*chr_cidr = '\0';
+				uint32 ban_ip = inet_addr(p);
+				*chr_cidr = '/';
+
+				/* Convert CIDR to mask in network format */
+				uint32 mask = htonl(-(1 << (32 - cidr)));
+				if ((logIpAddr & mask) == (ban_ip & mask)) allow = true;
+		} else {
+				/* No CIDR used, so just perform a simple IP test */
+				if (logIpAddr == inet_addr(p)) allow = true;
+		} 
+		
+		if (allow) break;
+		p = strtok(NULL, " ");
+	}
+	return allow;
+}
+
 void MuninNodeServer::Stop()
 {
   JCThread::Stop();
@@ -33,6 +66,8 @@ void *MuninNodeServer::Entry()
 	int portNumber = g_Config.GetValueI("MuninNode", "PortNumber", 4949);
 	bool logConnections = g_Config.GetValueB("MuninNode", "LogConnections", true);
 	std::string masterAddress = g_Config.GetValue("MuninNode", "MasterAddress", "*");
+	std::string networkAllowCIDR = g_Config.GetValue("MuninNode", "CIDRAddress", "127.0.0.0/18 192.168.0.0/24");
+
   //the socket function creates our SOCKET
   if (!m_ServerSocket.Create()) {
     return 0;
@@ -60,7 +95,7 @@ void *MuninNodeServer::Entry()
     if (m_ServerSocket.Accept(client)) {
 	  const char *ipAddress = inet_ntoa(client->m_Address.sin_addr);
 
-	  if (masterAddress == "*" || ipAddress == masterAddress) {
+	  if (masterAddress == "*" || ipAddress == masterAddress || CidrMatch(client->m_Address.sin_addr.s_addr, networkAllowCIDR)) {
 		  if(logConnections){
 			_Module.LogEvent("Connection from %s", ipAddress);
 		  }
@@ -69,8 +104,6 @@ void *MuninNodeServer::Entry()
 		  clientThread->Run();
 	  } else {
 		  _Module.LogError("Rejecting connection from %s", ipAddress);
-		  delete client;
-		  break;
 	  }
     } else {
       delete client;
