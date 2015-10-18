@@ -1,5 +1,5 @@
 # munin-nude-win32
-Automatically exported from code.google.com/p/munin-nude-win32
+Exported from https://code.google.com/p/munin-nude-win32
 
 
 munin-nude-win32 ~ munin node win32
